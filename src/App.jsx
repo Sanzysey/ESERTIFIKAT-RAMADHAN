@@ -5,14 +5,15 @@ import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged }
 import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot } from 'firebase/firestore';
 
 // --- MASUKKAN KONFIGURASI FIREBASE ANDA DI SINI ---
-// Saya telah memperbaiki Kunci API ini agar sama persis dengan foto Anda
+// Kunci API telah diperbaiki dan dicocokkan 100% dengan screenshot Anda
 const myFirebaseConfig = {
-  apiKey: "AIzaSyDBbRjtRya-36IUtTxsHx47BD739EQYQPc",
+  apiKey: "AIzaSyD0bRJtRya-36iUTtxsHx47BD739EOYQPc",
   authDomain: "sertifikat-ramadhan.firebaseapp.com",
   projectId: "sertifikat-ramadhan",
   storageBucket: "sertifikat-ramadhan.firebasestorage.app",
   messagingSenderId: "66047807637",
-  appId: "1:66047807637:web:3037d809740b4bd86acb9c"
+  appId: "1:66047807637:web:3037d809740b4bd86acb9c",
+  measurementId: "G-ZYZEVM7C6Y"
 };
 
 // --- SISTEM PENGAMAN ---
@@ -103,7 +104,8 @@ export default function App() {
     return () => { if (document.body.contains(script)) document.body.removeChild(script); };
   }, []);
 
-  const drawCertificate = () => {
+  // Fungsi menggambar disempurnakan agar bisa "dipaksa" menggambar nomor
+  const drawCertificate = (overrideNo = null) => {
     const canvas = canvasRef.current;
     const img = imageRef.current;
     if (!canvas || !img || !img.complete) return;
@@ -125,7 +127,8 @@ export default function App() {
       ctx.fillText(nama.toUpperCase(), config.name.x * scaleX, config.name.y * scaleY);
     }
 
-    const displayNo = noSertifikat ? noSertifikat : (isAdminMode || !db ? '001' : '');
+    const currentNo = overrideNo !== null ? overrideNo : noSertifikat;
+    const displayNo = currentNo ? currentNo : (isAdminMode || !db ? '001' : '');
     
     if (displayNo) {
       ctx.fillStyle = config.number.color;
@@ -138,9 +141,11 @@ export default function App() {
   const handleGenerateAndDownload = async () => {
     if (!nama.trim()) return;
     
+    // Jika tidak ada Database (Di mode uji coba lokal)
     if (!db) {
       setIsProcessing(true);
       setNoSertifikat('001'); 
+      drawCertificate('001'); // Paksa menggambar nomor 001 sebelum membuat PDF
       
       setTimeout(() => {
         const canvas = canvasRef.current;
@@ -150,7 +155,13 @@ export default function App() {
         pdf.addImage(imgData, 'JPEG', 0, 0, canvas.width, canvas.height);
         pdf.save(`Sertifikat_001_${nama.replace(/\s+/g, '_')}.pdf`);
         setIsProcessing(false);
-      }, 800);
+      }, 500);
+      return;
+    }
+
+    // Jika user gagal Login Anonim karena settingan Firebase
+    if (!user) {
+      alert("Koneksi gagal: Pastikan Anda sudah mengaktifkan 'Anonymous' di menu Authentication Firebase.");
       return;
     }
 
@@ -164,18 +175,25 @@ export default function App() {
         await setDoc(userRef, { nama: nama.toUpperCase(), noUrut: nextNo, timestamp: Date.now() });
         currentNo = nextNo;
         setNoSertifikat(nextNo);
-        await new Promise(resolve => setTimeout(resolve, 800));
       }
 
-      const canvas = canvasRef.current;
-      const { jsPDF } = window.jspdf;
-      const imgData = canvas.toDataURL('image/jpeg', 1.0);
-      const pdf = new jsPDF({ orientation: 'l', unit: 'px', format: [canvas.width, canvas.height] });
-      pdf.addImage(imgData, 'JPEG', 0, 0, canvas.width, canvas.height);
-      pdf.save(`Sertifikat_${currentNo}_${nama.replace(/\s+/g, '_')}.pdf`);
+      drawCertificate(currentNo); // Paksa menggambar nomor asli sebelum membuat PDF
+
+      setTimeout(() => {
+        const canvas = canvasRef.current;
+        const { jsPDF } = window.jspdf;
+        const imgData = canvas.toDataURL('image/jpeg', 1.0);
+        const pdf = new jsPDF({ orientation: 'l', unit: 'px', format: [canvas.width, canvas.height] });
+        pdf.addImage(imgData, 'JPEG', 0, 0, canvas.width, canvas.height);
+        pdf.save(`Sertifikat_${currentNo}_${nama.replace(/\s+/g, '_')}.pdf`);
+        setIsProcessing(false);
+      }, 500);
+      
     } catch (error) {
-      alert("Sistem sedang sibuk, silakan klik lagi.");
-    } finally { setIsProcessing(false); }
+      console.error(error);
+      alert("Sistem sedang sibuk. Pastikan internet lancar dan pengaturan Firebase sudah benar.");
+      setIsProcessing(false);
+    }
   };
 
   useEffect(() => {
@@ -204,7 +222,7 @@ export default function App() {
             </div>
             <div>
               <h1 className="text-2xl font-black text-emerald-900 uppercase">E-Sertifikat Online</h1>
-              <p className="text-slate-500 text-sm">Kursus Kilat Ramadhan, Ngabuburit Pro</p>
+              <p className="text-slate-500 text-sm">Sistem Terkunci & Otomatis</p>
             </div>
           </div>
           {secretClick >= 5 && (
