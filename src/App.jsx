@@ -221,7 +221,8 @@ export default function App() {
         {/* HEADER DENGAN TEMA MERAH PUTIH */}
         <header className="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center justify-between border border-red-50 gap-6">
           <div className="flex items-center gap-5">
-            <div onClick={() => setSecretClick(s => s + 1)} className="bg-transparent p-1 w-24 h-24 md:w-28 md:h-28 flex items-center justify-center rounded-2xl text-red-600 cursor-pointer active:scale-90 transition-transform overflow-hidden shrink-0 border-2 border-red-100 hover:border-red-300">
+            {/* Outline merah (border) telah dihilangkan dari className di bawah ini */}
+            <div onClick={() => setSecretClick(s => s + 1)} className="bg-transparent p-1 w-24 h-24 md:w-28 md:h-28 flex items-center justify-center rounded-2xl text-red-600 cursor-pointer active:scale-90 transition-transform overflow-hidden shrink-0">
               {!logoError ? (
                 <img src={logoSrc} alt="Logo" className="w-full h-full object-contain drop-shadow-sm" onError={() => setLogoError(true)} />
               ) : (
