@@ -195,7 +195,7 @@ export default function App() {
             </div>
             <div>
               <h1 className="text-2xl font-black text-emerald-900 uppercase">E-Sertifikat Online</h1>
-              <p className="text-slate-500 text-sm">Sistem Terkunci & Otomatis</p>
+              <p className="text-slate-500 text-sm">Kursus Kilat Ramadhan</p>
             </div>
           </div>
           {secretClick >= 5 && (
