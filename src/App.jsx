@@ -4,22 +4,37 @@ import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot } from 'firebase/firestore';
 
-// --- SISTEM PENGAMAN KONFIGURASI (ANTI LAYAR PUTIH) ---
+// --- MASUKKAN KONFIGURASI FIREBASE ANDA DI SINI ---
+// Saya telah memperbaiki Kunci API ini agar sama persis dengan foto Anda
+const myFirebaseConfig = {
+  apiKey: "AIzaSyDBbRjtRya-36IUtTxsHx47BD739EQYQPc",
+  authDomain: "sertifikat-ramadhan.firebaseapp.com",
+  projectId: "sertifikat-ramadhan",
+  storageBucket: "sertifikat-ramadhan.firebasestorage.app",
+  messagingSenderId: "66047807637",
+  appId: "1:66047807637:web:3037d809740b4bd86acb9c"
+};
+
+// --- SISTEM PENGAMAN ---
 const getFirebaseConfig = () => {
   try {
     if (typeof __firebase_config !== 'undefined' && __firebase_config) {
       return JSON.parse(__firebase_config);
     }
   } catch (e) {
-    console.warn("Konfigurasi Firebase tidak ditemukan (Mode Lokal).");
+    console.warn("Konfigurasi Firebase lingkungan tidak ditemukan.");
   }
+  
+  if (myFirebaseConfig && myFirebaseConfig.apiKey !== "") {
+    return myFirebaseConfig;
+  }
+  
   return null;
 };
 
 const fConfig = getFirebaseConfig();
 let auth, db;
 
-// Hanya inisialisasi jika sedang online (mencegah error di komputer lokal)
 if (fConfig && fConfig.apiKey) {
   const app = initializeApp(fConfig);
   auth = getAuth(app);
@@ -50,7 +65,6 @@ export default function App() {
   const canvasRef = useRef(null);
   const imageRef = useRef(null);
 
-  // 1. Firebase Auth
   useEffect(() => {
     if (!auth) return;
     const initAuth = async () => {
@@ -67,7 +81,6 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  // 2. Monitoring Database (Untuk Auto-Numbering)
   useEffect(() => {
     if (!user || !db) return;
     const participantsCol = collection(db, 'artifacts', appId, 'public', 'data', 'participants');
@@ -82,7 +95,6 @@ export default function App() {
     return () => unsubscribe();
   }, [user]);
 
-  // 3. Load Engine PDF
   useEffect(() => {
     const script = document.createElement('script');
     script.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
@@ -91,7 +103,6 @@ export default function App() {
     return () => { if (document.body.contains(script)) document.body.removeChild(script); };
   }, []);
 
-  // 4. Proses Menggambar ke Kanvas
   const drawCertificate = () => {
     const canvas = canvasRef.current;
     const img = imageRef.current;
@@ -106,7 +117,6 @@ export default function App() {
     const scaleX = canvas.width / 2000;
     const scaleY = canvas.height / 1414;
 
-    // GAMBAR NAMA
     if (nama.trim() !== '') {
       ctx.fillStyle = config.name.color;
       ctx.font = `bold ${config.name.size * scaleX}px Arial, sans-serif`;
@@ -115,30 +125,23 @@ export default function App() {
       ctx.fillText(nama.toUpperCase(), config.name.x * scaleX, config.name.y * scaleY);
     }
 
-    // GAMBAR NOMOR SERTIFIKAT
-    // Karena template sudah ada tulisan "No :", kita HANYA mencetak angkanya saja.
-    // Jika di lokal (!db), paksa tampilkan '001' agar bisa dilihat posisinya
     const displayNo = noSertifikat ? noSertifikat : (isAdminMode || !db ? '001' : '');
     
     if (displayNo) {
       ctx.fillStyle = config.number.color;
       ctx.font = `bold ${config.number.size * scaleX}px Arial, sans-serif`;
       ctx.textAlign = 'center';
-      // HANYA mencetak angka, tanpa awalan teks
       ctx.fillText(displayNo, config.number.x * scaleX, config.number.y * scaleY);
     }
   };
 
-  // 5. Fungsi Generate & Unduh
   const handleGenerateAndDownload = async () => {
     if (!nama.trim()) return;
     
-    // Jika di komputer lokal (Tanpa DB online), beri nomor uji coba '001' lalu unduh
     if (!db) {
       setIsProcessing(true);
-      setNoSertifikat('001'); // Beri nomor uji coba
+      setNoSertifikat('001'); 
       
-      // Tunggu sejenak agar kanvas menggambar ulang dengan nomor
       setTimeout(() => {
         const canvas = canvasRef.current;
         const { jsPDF } = window.jspdf;
@@ -175,7 +178,6 @@ export default function App() {
     } finally { setIsProcessing(false); }
   };
 
-  // 6. Monitor File Gambar
   useEffect(() => {
     if (!templateSrc) return;
     setIsLoading(true);
@@ -189,14 +191,12 @@ export default function App() {
     img.onerror = () => { setImageError(true); setIsLoading(false); };
   }, [templateSrc]);
 
-  // Redraw canvas jika ada perubahan teks, konfigurasi, atau mode admin
   useEffect(() => { drawCertificate(); }, [nama, noSertifikat, config, isAdminMode]);
 
   return (
     <div className="min-h-screen bg-slate-100 p-4 md:p-10 font-sans text-slate-800">
       <div className="max-w-6xl mx-auto flex flex-col gap-6">
         
-        {/* Header - Klik Piala 5x untuk menu admin */}
         <header className="bg-white rounded-3xl shadow-sm p-6 flex items-center justify-between border border-slate-200">
           <div className="flex items-center gap-4">
             <div onClick={() => setSecretClick(s => s + 1)} className="bg-emerald-600 p-3 rounded-2xl text-white shadow-lg cursor-pointer active:scale-90 transition-transform">
@@ -204,7 +204,7 @@ export default function App() {
             </div>
             <div>
               <h1 className="text-2xl font-black text-emerald-900 uppercase">E-Sertifikat Online</h1>
-              <p className="text-slate-500 text-sm">Kursus Kilat Ramadhan Ngabuburit Pro</p>
+              <p className="text-slate-500 text-sm">Kursus Kilat Ramadhan, Ngabuburit Pro</p>
             </div>
           </div>
           {secretClick >= 5 && (
@@ -216,7 +216,6 @@ export default function App() {
 
         <main className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           
-          {/* Kolom Kiri: Input Peserta & Admin Panel */}
           <div className="lg:col-span-5 space-y-6">
             <section className="bg-white rounded-3xl shadow-sm border border-slate-200 p-8">
               <div className="flex items-center gap-3 mb-6">
@@ -225,7 +224,6 @@ export default function App() {
               </div>
               <div className="space-y-6">
                 
-                {/* Peringatan Mode Lokal */}
                 {!db && (
                   <div className="bg-amber-50 border border-amber-200 p-3 rounded-xl flex items-center gap-2 text-amber-700 text-xs font-bold">
                     <AlertCircle size={16} />
@@ -256,17 +254,10 @@ export default function App() {
                     {isProcessing ? <RefreshCw className="animate-spin" /> : <Download size={24} />}
                     {noSertifikat ? 'UNDUH ULANG PDF' : 'GENERATE & UNDUH PDF'}
                   </button>
-                  {noSertifikat && (
-                    <div className="flex items-center justify-center gap-2 text-emerald-600 font-bold text-sm bg-emerald-50 py-3 rounded-xl border border-emerald-100">
-                      <CheckCircle2 size={18} />
-                      <span>Sertifikat Terdaftar: No. {noSertifikat}</span>
-                    </div>
-                  )}
                 </div>
               </div>
             </section>
             
-            {/* Panel Rahasia (Hanya muncul jika di-klik piala 5x) */}
             {isAdminMode && (
               <section className="bg-slate-900 rounded-3xl p-6 md:p-8 text-white shadow-2xl space-y-6">
                 <div className="flex items-center gap-2 text-emerald-400 border-b border-slate-800 pb-4">
@@ -274,7 +265,6 @@ export default function App() {
                   <h3 className="font-bold uppercase text-sm w-full text-center">Panel Konfigurasi</h3>
                 </div>
 
-                {/* --- KONTROL NAMA --- */}
                 <div className="space-y-4 border border-slate-800 p-4 rounded-xl">
                   <h4 className="text-xs font-bold text-slate-300 text-center uppercase tracking-widest">Atur Teks Nama</h4>
                   <div className="grid grid-cols-3 gap-3">
@@ -293,7 +283,6 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* --- KONTROL NOMOR SERTIFIKAT --- */}
                 <div className="space-y-4 border border-slate-800 p-4 rounded-xl bg-slate-800/50">
                   <h4 className="text-xs font-bold text-slate-300 text-center uppercase tracking-widest">Atur Teks Nomor</h4>
                   <div className="grid grid-cols-3 gap-3">
@@ -317,7 +306,6 @@ export default function App() {
             )}
           </div>
 
-          {/* Kolom Kanan: Pratinjau Kanvas */}
           <div className="lg:col-span-7 bg-slate-300 rounded-[2.5rem] p-4 md:p-10 flex flex-col items-center justify-center border-4 border-white shadow-inner min-h-[550px]">
             {isLoading ? <RefreshCw size={48} className="animate-spin text-emerald-600" /> : (
               <div className="bg-white shadow-2xl w-full rounded-lg overflow-hidden ring-8 ring-white/50 relative">
