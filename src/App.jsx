@@ -116,14 +116,16 @@ export default function App() {
     }
 
     // GAMBAR NOMOR SERTIFIKAT
-    // Tampilkan nomor asli, atau tampilkan '001' jika di mode admin (sebagai preview)
-    const displayNo = noSertifikat ? noSertifikat : (isAdminMode ? '001' : '');
+    // Karena template sudah ada tulisan "No :", kita HANYA mencetak angkanya saja.
+    // Jika di lokal (!db), paksa tampilkan '001' agar bisa dilihat posisinya
+    const displayNo = noSertifikat ? noSertifikat : (isAdminMode || !db ? '001' : '');
     
     if (displayNo) {
       ctx.fillStyle = config.number.color;
-      ctx.font = `italic ${config.number.size * scaleX}px Arial, sans-serif`;
+      ctx.font = `bold ${config.number.size * scaleX}px Arial, sans-serif`;
       ctx.textAlign = 'center';
-      ctx.fillText(` ${displayNo}`, config.number.x * scaleX, config.number.y * scaleY);
+      // HANYA mencetak angka, tanpa awalan teks
+      ctx.fillText(displayNo, config.number.x * scaleX, config.number.y * scaleY);
     }
   };
 
@@ -131,14 +133,21 @@ export default function App() {
   const handleGenerateAndDownload = async () => {
     if (!nama.trim()) return;
     
-    // Jika masih di komputer lokal (Tanpa DB online), langsung unduh
+    // Jika di komputer lokal (Tanpa DB online), beri nomor uji coba '001' lalu unduh
     if (!db) {
-      const canvas = canvasRef.current;
-      const { jsPDF } = window.jspdf;
-      const imgData = canvas.toDataURL('image/jpeg', 1.0);
-      const pdf = new jsPDF({ orientation: 'l', unit: 'px', format: [canvas.width, canvas.height] });
-      pdf.addImage(imgData, 'JPEG', 0, 0, canvas.width, canvas.height);
-      pdf.save(`Sertifikat_${nama.replace(/\s+/g, '_')}.pdf`);
+      setIsProcessing(true);
+      setNoSertifikat('001'); // Beri nomor uji coba
+      
+      // Tunggu sejenak agar kanvas menggambar ulang dengan nomor
+      setTimeout(() => {
+        const canvas = canvasRef.current;
+        const { jsPDF } = window.jspdf;
+        const imgData = canvas.toDataURL('image/jpeg', 1.0);
+        const pdf = new jsPDF({ orientation: 'l', unit: 'px', format: [canvas.width, canvas.height] });
+        pdf.addImage(imgData, 'JPEG', 0, 0, canvas.width, canvas.height);
+        pdf.save(`Sertifikat_001_${nama.replace(/\s+/g, '_')}.pdf`);
+        setIsProcessing(false);
+      }, 800);
       return;
     }
 
@@ -180,7 +189,7 @@ export default function App() {
     img.onerror = () => { setImageError(true); setIsLoading(false); };
   }, [templateSrc]);
 
-  // Redraw canvas jika ada perubahan teks, konfigurasi, atau mode admin (untuk memunculkan nomor dummy)
+  // Redraw canvas jika ada perubahan teks, konfigurasi, atau mode admin
   useEffect(() => { drawCertificate(); }, [nama, noSertifikat, config, isAdminMode]);
 
   return (
@@ -195,7 +204,7 @@ export default function App() {
             </div>
             <div>
               <h1 className="text-2xl font-black text-emerald-900 uppercase">E-Sertifikat Online</h1>
-              <p className="text-slate-500 text-sm">Kursus Kilat Ramadhan</p>
+              <p className="text-slate-500 text-sm">Kursus Kilat Ramadhan Ngabuburit Pro</p>
             </div>
           </div>
           {secretClick >= 5 && (
