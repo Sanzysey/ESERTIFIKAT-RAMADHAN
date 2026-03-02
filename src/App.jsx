@@ -90,11 +90,12 @@ export default function App() {
       const myDoc = snapshot.docs.find(d => d.id === user.uid);
       if (myDoc) {
         setNoSertifikat(myDoc.data().noUrut);
-        setNama(myDoc.data().nama);
+        // Memastikan nama dari DB hanya dimuat jika input sedang kosong (mencegah bentrokan saat mengetik)
+        setNama(prev => prev === '' ? myDoc.data().nama : prev);
       }
     });
     return () => unsubscribe();
-  }, [user]);
+  }, [user, db]);
 
   useEffect(() => {
     const script = document.createElement('script');
@@ -104,7 +105,6 @@ export default function App() {
     return () => { if (document.body.contains(script)) document.body.removeChild(script); };
   }, []);
 
-  // Fungsi menggambar disempurnakan agar bisa "dipaksa" menggambar nomor
   const drawCertificate = (overrideNo = null) => {
     const canvas = canvasRef.current;
     const img = imageRef.current;
@@ -141,11 +141,10 @@ export default function App() {
   const handleGenerateAndDownload = async () => {
     if (!nama.trim()) return;
     
-    // Jika tidak ada Database (Di mode uji coba lokal)
     if (!db) {
       setIsProcessing(true);
       setNoSertifikat('001'); 
-      drawCertificate('001'); // Paksa menggambar nomor 001 sebelum membuat PDF
+      drawCertificate('001'); 
       
       setTimeout(() => {
         const canvas = canvasRef.current;
@@ -159,7 +158,6 @@ export default function App() {
       return;
     }
 
-    // Jika user gagal Login Anonim karena settingan Firebase
     if (!user) {
       alert("Koneksi gagal: Pastikan Anda sudah mengaktifkan 'Anonymous' di menu Authentication Firebase.");
       return;
@@ -175,9 +173,12 @@ export default function App() {
         await setDoc(userRef, { nama: nama.toUpperCase(), noUrut: nextNo, timestamp: Date.now() });
         currentNo = nextNo;
         setNoSertifikat(nextNo);
+      } else {
+        // PERBARUI NAMA: Jika nomor sertifikat sudah ada, kita perbarui nama di databasenya (jika ada typo)
+        await setDoc(userRef, { nama: nama.toUpperCase(), noUrut: currentNo, timestamp: Date.now() }, { merge: true });
       }
 
-      drawCertificate(currentNo); // Paksa menggambar nomor asli sebelum membuat PDF
+      drawCertificate(currentNo); 
 
       setTimeout(() => {
         const canvas = canvasRef.current;
@@ -222,7 +223,7 @@ export default function App() {
             </div>
             <div>
               <h1 className="text-2xl font-black text-emerald-900 uppercase">E-Sertifikat Online</h1>
-              <p className="text-slate-500 text-sm">Kursus Kilat Ramadhan,Ngabuburit Pro</p>
+              <p className="text-slate-500 text-sm">Sistem Terkunci & Otomatis</p>
             </div>
           </div>
           {secretClick >= 5 && (
@@ -255,8 +256,9 @@ export default function App() {
                     type="text"
                     value={nama}
                     onChange={(e) => setNama(e.target.value)}
-                    disabled={!!noSertifikat || isProcessing}
-                    className="w-full bg-slate-50 rounded-2xl border-2 border-slate-100 px-5 py-4 focus:border-emerald-500 outline-none text-lg font-bold disabled:opacity-60 uppercase"
+                    // KUNCI DIBUKA: Hanya dikunci saat sedang memproses (loading), tidak lagi dikunci selamanya
+                    disabled={isProcessing}
+                    className="w-full bg-slate-50 rounded-2xl border-2 border-slate-100 px-5 py-4 focus:border-emerald-500 outline-none text-lg font-bold disabled:opacity-60 uppercase transition-all"
                     placeholder="CONTOH: MUHAMMAD ARYA"
                   />
                 </div>
@@ -270,7 +272,7 @@ export default function App() {
                         : 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'}`}
                   >
                     {isProcessing ? <RefreshCw className="animate-spin" /> : <Download size={24} />}
-                    {noSertifikat ? 'UNDUH ULANG PDF' : 'GENERATE & UNDUH PDF'}
+                    {noSertifikat ? 'PERBARUI & UNDUH PDF' : 'GENERATE & UNDUH PDF'}
                   </button>
                 </div>
               </div>
