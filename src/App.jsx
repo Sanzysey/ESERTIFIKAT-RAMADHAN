@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Download, Award, User, Settings2, ShieldCheck, CheckCircle2, AlertCircle, RefreshCw, Upload, FileImage, FileText } from 'lucide-react';
+import { Download, Award, User, Settings2, ShieldCheck, CheckCircle2, AlertCircle, RefreshCw, Upload, FileImage, FileText, Image as ImageIcon } from 'lucide-react';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot } from 'firebase/firestore';
 
 // --- MASUKKAN KONFIGURASI FIREBASE ANDA DI SINI ---
-// Kunci API telah diperbaiki dan dicocokkan 100% dengan screenshot Anda
 const myFirebaseConfig = {
   apiKey: "AIzaSyD0bRJtRya-36iUTtxsHx47BD739EOYQPc",
   authDomain: "sertifikat-ramadhan.firebaseapp.com",
@@ -51,6 +50,10 @@ export default function App() {
   const [participantsCount, setParticipantsCount] = useState(0);
   
   const [templateSrc, setTemplateSrc] = useState('SERTIFIKAT RAMADHAN 2026.jpg');
+  
+  // State untuk logo (default mencari logo.png di folder public)
+  const [logoSrc, setLogoSrc] = useState('logo.png');
+  
   const [isAdminMode, setIsAdminMode] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [logoError, setLogoError] = useState(false);
@@ -58,7 +61,7 @@ export default function App() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [secretClick, setSecretClick] = useState(0); 
 
-  // --- CONFIG TERKUNCI PERMANEN: Sesuai Setting Terakhir Anda ---
+  // --- CONFIG TERKUNCI PERMANEN ---
   const [config, setConfig] = useState({
     name: { x: 999, y: 602, size: 94, color: '#1a1a1a' },
     number: { x: 834, y: 410, size: 33, color: '#1a1a1a' }
@@ -91,7 +94,6 @@ export default function App() {
       const myDoc = snapshot.docs.find(d => d.id === user.uid);
       if (myDoc) {
         setNoSertifikat(myDoc.data().noUrut);
-        // Memastikan nama dari DB hanya dimuat jika input sedang kosong (mencegah bentrokan saat mengetik)
         setNama(prev => prev === '' ? myDoc.data().nama : prev);
       }
     });
@@ -175,7 +177,6 @@ export default function App() {
         currentNo = nextNo;
         setNoSertifikat(nextNo);
       } else {
-        // PERBARUI NAMA: Jika nomor sertifikat sudah ada, kita perbarui nama di databasenya (jika ada typo)
         await setDoc(userRef, { nama: nama.toUpperCase(), noUrut: currentNo, timestamp: Date.now() }, { merge: true });
       }
 
@@ -215,25 +216,26 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-50 p-4 md:p-10 font-sans text-slate-800">
-      <div className="max-w-6xl mx-auto flex flex-col gap-6">
+      <div className="max-w-6xl mx-auto flex flex-col gap-8">
         
-        <header className="bg-white rounded-3xl shadow-sm p-6 flex flex-col md:flex-row items-start md:items-center justify-between border border-red-100 gap-4">
-          <div className="flex items-center gap-4">
-            <div onClick={() => setSecretClick(s => s + 1)} className="bg-red-600 p-1.5 w-14 h-14 flex items-center justify-center rounded-2xl text-white shadow-lg shadow-red-200 cursor-pointer active:scale-90 transition-transform overflow-hidden shrink-0">
+        {/* HEADER DENGAN TEMA MERAH PUTIH */}
+        <header className="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center justify-between border border-red-50 gap-6">
+          <div className="flex items-center gap-5">
+            <div onClick={() => setSecretClick(s => s + 1)} className="bg-transparent p-1 w-24 h-24 md:w-28 md:h-28 flex items-center justify-center rounded-2xl text-red-600 cursor-pointer active:scale-90 transition-transform overflow-hidden shrink-0 border-2 border-red-100 hover:border-red-300">
               {!logoError ? (
-                <img src="/logo.png" alt="Logo" className="w-full h-full object-contain drop-shadow-sm" onError={() => setLogoError(true)} />
+                <img src={logoSrc} alt="Logo" className="w-full h-full object-contain drop-shadow-sm" onError={() => setLogoError(true)} />
               ) : (
-                <Award size={32} />
+                <Award size={40} className="opacity-90" />
               )}
             </div>
             <div>
-              <h1 className="text-xl md:text-2xl font-black text-red-900 uppercase tracking-tight">E-Sertifikat Kursus Kilat Ramadhan 2026</h1>
-              <p className="text-red-600/80 font-medium text-sm mt-0.5">Kursus Kilat Ramadhan, Ngabuburit Pro</p>
+              <h1 className="text-xl md:text-3xl font-black text-slate-800 uppercase tracking-tight">E-Sertifikat Kursus Kilat Ramadhan 2026</h1>
+              <p className="text-red-600 font-semibold text-sm mt-1 tracking-wide">Kursus Kilat Ramadhan, Ngabuburit Pro</p>
             </div>
           </div>
           {secretClick >= 5 && (
-            <button onClick={() => setIsAdminMode(!isAdminMode)} className="p-2.5 text-red-600 bg-red-50 rounded-full border border-red-100 shrink-0">
-              <Settings2 size={22} />
+            <button onClick={() => setIsAdminMode(!isAdminMode)} className="p-3 text-red-600 bg-red-50 hover:bg-red-100 rounded-full border border-red-100 shrink-0 transition-colors">
+              <Settings2 size={24} />
             </button>
           )}
         </header>
@@ -241,55 +243,87 @@ export default function App() {
         <main className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           
           <div className="lg:col-span-5 space-y-6">
-            <section className="bg-white rounded-3xl shadow-sm border border-slate-100 p-8">
-              <div className="flex items-center gap-3 mb-8">
-                <div className="w-1.5 h-6 bg-red-600 rounded-full"></div>
-                <h2 className="text-xl font-bold text-slate-800">Data Peserta</h2>
+            <section className="bg-white rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 p-8 md:p-10 relative overflow-hidden">
+              
+              {/* Aksen Hiasan Merah di Sudut */}
+              <div className="absolute top-0 right-0 w-32 h-32 bg-red-50 rounded-bl-[100px] -z-0 opacity-50"></div>
+              
+              <div className="flex items-center gap-3 mb-8 relative z-10">
+                <div className="w-2 h-8 bg-red-600 rounded-full"></div>
+                <h2 className="text-2xl font-black text-slate-800 tracking-tight">Data Peserta</h2>
               </div>
-              <div className="space-y-6">
+              
+              <div className="space-y-8 relative z-10">
                 
                 {!db && (
-                  <div className="bg-amber-50 border border-amber-200 p-3 rounded-xl flex items-center gap-2 text-amber-700 text-xs font-bold">
-                    <AlertCircle size={16} />
-                    Mode Lokal: Uji coba PDF aktif. Nomor rilis saat online.
+                  <div className="bg-red-50 border border-red-100 p-4 rounded-2xl flex items-center gap-3 text-red-700 text-sm font-semibold">
+                    <AlertCircle size={20} className="shrink-0" />
+                    <span>Mode Lokal: Uji coba PDF aktif. Nomor rilis saat online.</span>
                   </div>
                 )}
 
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-400 mb-2.5 uppercase tracking-widest">Masukkan Nama Lengkap</label>
-                  <input
-                    type="text"
-                    value={nama}
-                    onChange={(e) => setNama(e.target.value)}
-                    disabled={isProcessing}
-                    className="w-full bg-white rounded-xl border border-slate-200 px-5 py-4 focus:border-red-500 focus:ring-4 focus:ring-red-50 outline-none text-lg font-bold text-slate-800 disabled:bg-slate-50 disabled:text-slate-400 uppercase transition-all shadow-sm placeholder:text-slate-300"
-                    placeholder="CONTOH: MUHAMMAD ARYA"
-                  />
+                {/* KOTAK INPUT NAMA - ELEGAN & ESTETIK */}
+                <div className="group">
+                  <label className="block text-xs font-black text-red-600/80 mb-3 uppercase tracking-widest ml-1">Masukkan Nama Lengkap</label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={nama}
+                      onChange={(e) => setNama(e.target.value)}
+                      disabled={isProcessing}
+                      className="w-full bg-slate-50/50 rounded-2xl border-2 border-slate-200 pl-6 pr-12 py-5 focus:border-red-500 focus:bg-white focus:ring-[6px] focus:ring-red-50 outline-none text-xl font-black text-slate-800 disabled:opacity-50 uppercase transition-all shadow-inner placeholder:text-slate-300 placeholder:font-bold"
+                      placeholder="CONTOH: SANIMAN"
+                    />
+                    <div className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-red-500 transition-colors">
+                      <User size={24} />
+                    </div>
+                  </div>
                 </div>
-                <div className="space-y-3 pt-2">
+
+                <div className="pt-4">
                   <button
                     onClick={handleGenerateAndDownload}
                     disabled={!nama.trim() || isProcessing || imageError || isLoading}
-                    className={`w-full flex items-center justify-center gap-3 px-8 py-4 rounded-xl font-black text-lg transition-all 
+                    className={`w-full flex items-center justify-center gap-3 px-8 py-5 rounded-2xl font-black text-lg transition-all duration-300
                       ${nama.trim() && !isProcessing && !isLoading 
-                        ? 'bg-red-600 hover:bg-red-700 text-white shadow-xl shadow-red-200/50 cursor-pointer active:scale-95' 
+                        ? 'bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white shadow-[0_10px_20px_rgb(220,38,38,0.25)] hover:shadow-[0_15px_25px_rgb(220,38,38,0.35)] cursor-pointer active:scale-[0.98] border border-red-500' 
                         : 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'}`}
                   >
-                    {isProcessing ? <RefreshCw className="animate-spin" /> : <Download size={22} />}
+                    {isProcessing ? <RefreshCw className="animate-spin" size={24} /> : <Download size={24} />}
                     {noSertifikat ? 'PERBARUI & UNDUH PDF' : 'GENERATE & UNDUH PDF'}
                   </button>
                 </div>
               </div>
             </section>
             
+            {/* PANEL ADMIN RAHASIA */}
             {isAdminMode && (
-              <section className="bg-slate-900 rounded-3xl p-6 md:p-8 text-white shadow-2xl space-y-6">
+              <section className="bg-slate-900 rounded-[2rem] p-6 md:p-8 text-white shadow-2xl space-y-6 relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-600 to-red-400"></div>
+                
                 <div className="flex items-center gap-2 text-red-400 border-b border-slate-800 pb-4">
                   <ShieldCheck size={20} />
-                  <h3 className="font-bold uppercase text-sm w-full text-center tracking-wider">Panel Konfigurasi</h3>
+                  <h3 className="font-bold uppercase text-sm w-full text-center tracking-wider">Panel Konfigurasi Admin</h3>
                 </div>
 
-                <div className="space-y-4 border border-slate-800 p-4 rounded-xl bg-slate-800/30">
+                {/* GANTI LOGO CUSTOM */}
+                <div className="space-y-3 border border-slate-800 p-5 rounded-2xl bg-slate-800/30">
+                  <h4 className="text-xs font-bold text-slate-400 text-center uppercase tracking-widest flex items-center justify-center gap-2">
+                    <ImageIcon size={14} /> URL Logo Kustom
+                  </h4>
+                  <input 
+                    type="text" 
+                    placeholder="Contoh: https://link-gambar-anda.com/logo.png" 
+                    value={logoSrc} 
+                    onChange={(e) => { setLogoSrc(e.target.value); setLogoError(false); }} 
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-xs text-white outline-none focus:border-red-500 transition-colors"
+                  />
+                  <p className="text-[10px] text-slate-500 text-center leading-relaxed">
+                    Jika `logo.png` tidak muncul, Anda bisa menempelkan link gambar dari internet ke sini.
+                  </p>
+                </div>
+
+                <div className="space-y-4 border border-slate-800 p-5 rounded-2xl bg-slate-800/30">
                   <h4 className="text-xs font-bold text-slate-400 text-center uppercase tracking-widest">Atur Teks Nama</h4>
                   <div className="grid grid-cols-3 gap-3">
                     <div className="space-y-1">
@@ -307,7 +341,7 @@ export default function App() {
                   </div>
                 </div>
 
-                <div className="space-y-4 border border-slate-800 p-4 rounded-xl bg-slate-800/30">
+                <div className="space-y-4 border border-slate-800 p-5 rounded-2xl bg-slate-800/30">
                   <h4 className="text-xs font-bold text-slate-400 text-center uppercase tracking-widest">Atur Teks Nomor</h4>
                   <div className="grid grid-cols-3 gap-3">
                     <div className="space-y-1">
@@ -325,15 +359,15 @@ export default function App() {
                   </div>
                 </div>
 
-                <button onClick={() => setSecretClick(0) || setIsAdminMode(false)} className="w-full py-3 bg-red-900/30 text-red-400 rounded-xl text-xs font-bold uppercase border border-red-900/50 hover:bg-red-900/50 transition-colors">Tutup & Kunci Pengaturan</button>
+                <button onClick={() => setSecretClick(0) || setIsAdminMode(false)} className="w-full py-4 bg-red-900/30 text-red-400 rounded-xl text-xs font-bold uppercase border border-red-900/50 hover:bg-red-900/50 hover:text-red-300 transition-colors">Tutup & Kunci Pengaturan</button>
               </section>
             )}
           </div>
 
-          <div className="lg:col-span-7 bg-white rounded-[2rem] p-4 md:p-8 flex flex-col items-center justify-center border border-slate-200 shadow-sm min-h-[550px]">
+          <div className="lg:col-span-7 bg-slate-200/50 rounded-[2rem] p-4 md:p-8 flex flex-col items-center justify-center border-4 border-white shadow-inner min-h-[550px]">
             {isLoading ? <RefreshCw size={48} className="animate-spin text-red-600" /> : (
-              <div className="bg-white shadow-xl w-full rounded-lg overflow-hidden border border-slate-100 relative">
-                <canvas ref={canvasRef} className="w-full h-auto block" />
+              <div className="bg-white shadow-2xl w-full rounded-xl overflow-hidden border-8 border-white relative ring-1 ring-slate-100">
+                <canvas ref={canvasRef} className="w-full h-auto block drop-shadow-sm" />
               </div>
             )}
           </div>
